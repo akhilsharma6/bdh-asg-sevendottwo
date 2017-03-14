@@ -1,0 +1,69 @@
+**** PLEASE OPEN IN NOTEPAD++ ****
+Submitted by Akhil Sharma
+
+Assignment 7.2
+Problem Statement: We have employee_details and employee_expenses files. Use local mode while running Pig and
+write Pig Latin script to get below results:
+
+(a) Top 5 employees (employee id and employee name) with highest rating.
+(In case two employees have same rating, employee with name coming first in dictionary
+should get preference)
+
+Answer: Below are the scripts.
+ed = load 'employee_details.txt' using PigStorage(',') as (empid:int,empname:chararray,salary:double,rating:int);
+toprat = order ed by rating asc,empname asc;
+emp_top_rat = foreach toprat generate empid,empname,rating;
+top5_rat = limit emp_top_rat 5;
+dump top5_rat;
+store top5_rat into 'asg7_1_a' using PigStorage('|');
+
+(b) Top 3 employees (employee id and employee name) with highest salary, whose employee id
+is an odd number.
+(In case two employees have same salary, employee with name coming first in dictionary
+should get preference)
+
+Answer: Below are the scripts.
+ed = load 'employee_details.txt' using PigStorage(',') as (empid:int,empname:chararray,salary:double,rating:int);
+split ed into emp_list_odd if empid % 2 == 1, emp_list_even if empid % 2 == 0;
+emp_sal_order = order emp_list_odd by salary desc,empname asc;
+emp_sal_odd = foreach emp_sal_order generate empid, empname,salary;
+emp_top3_sal = limit emp_sal_odd 3;
+store emp_top3_sal into 'asg7_1_b' using PigStorage('|');
+
+(c) Employee (employee id and employee name) with maximum expense
+(In case two employees have same expense, employee with name coming first in dictionary
+should get preference)
+
+Answer: Below are the scripts.
+ed = load 'employee_details.txt' using PigStorage(',') as (empid:int,empname:chararray,salary:double,rating:int);
+ee = load 'employee_expenses.txt' as (empid:int,expense:double);
+ecj = cogroup ed by empid,ee by empid;
+emp_exp_sum = foreach ecj generate group as empid, SUM(ee.expense) as tot_exp;
+emp_exp_list = join ed by empid left, emp_exp_sum by empid;
+emp_exp_ord = order emp_exp_list by tot_exp desc,empname asc;
+emp_max_tmp = foreach emp_exp_ord generate ed::empid, ed::empname,emp_exp_sum::tot_exp;
+emp_max_exp = LIMIT emp_max_tmp 1;
+store emp_max_exp into 'asg7_1_c' using PigStorage('|');
+
+(d) List of employees (employee id and employee name) having entries in employee_expenses
+file.
+Answer: Below are the scripts.
+ed = load 'employee_details.txt' using PigStorage(',') as (empid:int,empname:chararray,salary:double,rating:int);
+ee = load 'employee_expenses.txt' as (empid:int,expense:double);
+emp_join = join ee by empid left,ed by empid;
+emp_exp_ent = foreach emp_join generate ee::empid, ed::empname;
+emp_exp_list_only = DISTINCT emp_exp_ent;
+dump emp_exp_list_only;
+store emp_exp_list_only into 'asg7_1_d' using PigStorage('|');
+
+(e) List of employees (employee id and employee name) having no entry in employee_expenses
+file.
+Answer: Below are the scripts.
+ed = load 'employee_details.txt' using PigStorage(',') as (empid:int,empname:chararray,salary:double,rating:int);
+ee = load 'employee_expenses.txt' as (empid:int,expense:double);
+empjoin = join ed by empid full, ee by empid;
+noexp = filter empjoin by ee:expense is null;
+noexp_list = foreach noexp generate ed::empid, ed::empname,ee::expense;
+store noexp_list into 'asg7_1_e' using PigStorage('|');
+
+
